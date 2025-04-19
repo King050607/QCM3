@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QCM - Newton et Skate</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      padding: 20px;
+      max-width: 800px;
+      margin: auto;
+    }
+    #progress-container {
+      position: sticky;
+      top: 0;
+      background: #f4f4f4;
+      padding: 10px 0;
+      margin-bottom: 20px;
+      z-index: 1000;
+    }
+    #progress-bar {
+      width: 100%;
+      height: 20px;
+      background: #e0e0e0;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    #progress-fill {
+      height: 100%;
+      width: 0%;
+      background: #0077cc;
+      transition: width 0.3s ease;
+    }
+    .question {
+      background: white;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1, h2 {
+      color: #0077cc;
+      text-align: center;
+    }
+    label {
+      display: block;
+      margin: 8px 0;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #0077cc;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 10px 10px 0 0;
+    }
+    .resultat {
+      font-size: 18px;
+      font-weight: bold;
+      margin-top: 20px;
+      text-align: center;
+    }
+    .bonne-reponse { background-color: #d4edda; }
+    .mauvaise-reponse { background-color: #f8d7da; }
+    #badgeZone {
+      font-size: 20px;
+      font-weight: bold;
+      text-align: center;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🛹 QCM – Newton chez les skateurs</h1>
+  <p style="text-align:center;"><strong>Niveau :</strong> Terminale • <strong>Thème :</strong> Lois de Newton</p>
+
+  <div id="progress-container">
+    <div id="progress-bar"><div id="progress-fill"></div></div>
+  </div>
+  
+  <form id="quizForm"></form>
+
+  <div style="text-align:center;">
+    <button type="button" onclick="corrigerQuiz()">Voir le score</button>
+    <button type="button" onclick="rejouerQuiz()">Rejouer</button>
+  </div>
+
+  <p class="resultat" id="resultat"></p>
+  <div id="badgeZone"></div>
+
+  <script>
+    const questions = [
+      { texte: "Le skateur avance en ligne droite à vitesse constante. Quelle est la nature du mouvement ?", options: ["Mouvement rectiligne uniformément accéléré", "Mouvement rectiligne uniforme", "Mouvement circulaire", "Mouvement harmonique"], reponse: 1 },
+      { texte: "Quelles forces s'exercent sur le skateur pendant ce mouvement ?", options: ["Seulement son poids", "Seulement la réaction du sol", "Son poids et la réaction du sol qui se compensent", "Une force de propulsion constante"], reponse: 2 },
+      { texte: "Pendant la glissade sur le rail horizontal, la force de frottement s’oppose :", options: ["À la vitesse du skateur", "À la gravité", "À la réaction normale", "Au poids du skateur"], reponse: 0 },
+      { texte: "La vitesse du skateur diminue. Que peut-on en déduire selon la 2ᵉ loi de Newton ?", options: ["Les forces sont équilibrées", "Il n’y a aucune force appliquée", "Il y a une force résultante opposée au mouvement", "Il y a une force résultante dans le sens du mouvement"], reponse: 2 },
+      { texte: "Le skateur est en l'air et pèse 50kg, qu'elle est la norme de son acceleration ?", options: ["9.81 N/Kg", "9.81 m/s", "50 m/s", "165m/s"], reponse: 1 },
+      { texte: "Lorsqu’un skateur est en l’air, quelle force reste appliquée ?", options: ["Aucune force", "Le poids", "La poussée du sol", "La vitesse"], reponse: 1 },
+      { texte: "Quel énoncé correspond à la 1ère loi de Newton ?", options: ["Un objet reste en mouvement uniforme si aucune force n’agit", "Un objet reste en mouvement uniforme si les forces se compensent", "Un objet accélère si une force agit", "Un objet ne peut jamais rester immobile"], reponse: 1 },
+      { texte: "Quel énoncé décrit la 2ème loi de Newton ?", options: ["F = m·a", "P = m·g", "E = m·c²", "a = F·m"], reponse: 0 },
+      { texte: "Un objet soumis uniquement à son poids...", options: ["reste immobile", "accélère vers le haut", "accélère vers le bas", "subit une force nulle"], reponse: 2 },
+      { texte: "Un skateur en virage subit une force appelée :", options: ["gravitationnelle", "centripète", "de frottement", "normale"], reponse: 1 }
+    ];
+
+    const form = document.getElementById("quizForm");
+    const badgeZone = document.getElementById("badgeZone");
+    const progressFill = document.getElementById("progress-fill");
+
+    function afficherQuestions() {
+      form.innerHTML = "";
+      questions.forEach((q, i) => {
+        const div = document.createElement("div");
+        div.className = "question";
+        div.innerHTML = `<h2>Question ${i + 1}</h2><p>${q.texte}</p>`;
+        q.options.forEach((opt, j) => {
+          div.innerHTML += `<label><input type="radio" name="q${i}" value="${j}" onchange="updateProgress()"> ${String.fromCharCode(65+j)}. ${opt}</label>`;
+        });
+        form.appendChild(div);
+      });
+      updateProgress();
+    }
+
+    function updateProgress() {
+      const total = questions.length;
+      let answered = 0;
+      for (let i = 0; i < total; i++) {
+        if (document.querySelector(`input[name="q${i}"]:checked`)) answered++;
+      }
+      progressFill.style.width = (answered / total * 100) + "%";
+    }
+
+    function corrigerQuiz() {
+      let score = 0;
+      questions.forEach((q, i) => {
+        const sel = document.querySelector(`input[name="q${i}"]:checked`);
+        const radios = document.querySelectorAll(`input[name="q${i}"]`);
+        radios.forEach((r, j) => {
+          const lbl = r.parentElement;
+          lbl.classList.remove("bonne-reponse","mauvaise-reponse");
+          if (j===q.reponse) lbl.classList.add("bonne-reponse");
+          else if (r.checked) lbl.classList.add("mauvaise-reponse");
+        });
+        if (sel && parseInt(sel.value) === q.reponse) score++;
+      });
+      document.getElementById("resultat").textContent = `✅ Score : ${score}/${questions.length}`;      let badge = "🎓 Continue à t'entraîner !";
+      if (score >= 9) badge = "🏆 Maître des lois de Newton !";
+      else if (score >= 7) badge = "🥈 Très bon !";
+      else if (score >= 5) badge = "📘 Bon début !";
+      badgeZone.textContent = badge;
+    }
+
+    function rejouerQuiz() {
+      afficherQuestions();
+      document.getElementById("resultat").textContent = "";
+      badgeZone.textContent = "";
+    }
+
+    // Initialisation
+    afficherQuestions();
+  </script>
+</body>
+</html>
